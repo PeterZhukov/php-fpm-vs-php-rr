@@ -1,0 +1,55 @@
+version: '3'
+services:
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "80:80"
+      - "81:81"
+    depends_on:
+      - php-fpm
+      - php-rr
+    working_dir: /app
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./laravel:/app
+    networks:
+      - app-network
+      
+  php-fpm:
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    container_name: php-fpm
+    restart: unless-stopped
+    tty: true
+    working_dir: /app
+    volumes: 
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+      - ./laravel:/app
+    networks:
+      - app-network
+      
+  php-rr:
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    container_name: php-rr
+    restart: unless-stopped
+    tty: true
+    working_dir: /app
+    volumes: 
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+      - ./laravel:/app
+    entrypoint: "php -d variables_order=EGPCS /app/artisan octane:start --server=roadrunner --host=0.0.0.0 --rpc-port=6001 --port=80"
+    stop_grace_period: 3s
+    networks:
+      - app-network
+  
+
+networks:
+  app-network:
+    driver: bridge
